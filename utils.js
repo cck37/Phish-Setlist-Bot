@@ -79,6 +79,3 @@ export function capitalize(str) {
 
 export const isCommand = (message, commandName) =>
   !message?.author.bot && message.content.startsWith(`!${commandName}`);
-
-export const mapShowsToDiscordResponse = (show) =>
-  `- **${show.venue}**\n - ${show.showdate}\n - ${show.venue}, ${show.city}, ${show.state}\n - **Show Id:** ${show.showid}\n\n`;

@@ -11,7 +11,7 @@ import {
   VerifyDiscordRequest,
   getRandomEmoji,
   DiscordRequest,
-  mapShowsToDiscordResponse,
+  mapShowToDiscordResponse,
 } from "./utils.js";
 import { getShuffledOptions, getResult } from "./game.js";
 import { fetchShows } from "./api.js";
@@ -73,7 +73,6 @@ app.post("/interactions", async function (req, res) {
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
-          // Fetches a random emoji to send from a helper function
           content: `Rock papers scissors challenge from <@${userId}>`,
           components: [
             {
@@ -105,10 +104,74 @@ app.post("/interactions", async function (req, res) {
           return showDate >= currentDate;
         })
         .sort((a, b) => new Date(a.showdate) - new Date(b.showdate))[0];
-      const showList = mapShowsToDiscordResponse(nextShowToBePlayed);
+      const showList = mapShowToDiscordResponse(nextShowToBePlayed);
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: { content: `Here's the next show to be played:\n\n${showList}` },
+      });
+    }
+
+    if (name === "guess") {
+      // Send a modal as response
+      return res.send({
+        type: InteractionResponseType.APPLICATION_MODAL,
+        data: {
+          custom_id: "my_modal",
+          title: "Modal title",
+          components: [
+            {
+              // Text inputs must be inside of an action component
+              type: MessageComponentTypes.ACTION_ROW,
+              components: [
+                {
+                  // See https://discord.com/developers/docs/interactions/message-components#text-inputs-text-input-structure
+                  type: MessageComponentTypes.INPUT_TEXT,
+                  custom_id: "my_text",
+                  style: 1,
+                  label: "Type some text",
+                },
+              ],
+            },
+            {
+              type: MessageComponentTypes.ACTION_ROW,
+              components: [
+                {
+                  type: MessageComponentTypes.INPUT_TEXT,
+                  custom_id: "my_longer_text",
+                  // Bigger text box for input
+                  style: 2,
+                  label: "Type some (longer) text",
+                },
+              ],
+            },
+          ],
+        },
+      });
+    }
+  }
+
+  /**
+   * Handle modal submissions
+   */
+  if (type === InteractionType.APPLICATION_MODAL_SUBMIT) {
+    // custom_id of modal
+    const modalId = data.custom_id;
+    // user ID of member who filled out modal
+    const userId = req.body.member.user.id;
+
+    if (modalId === "my_modal") {
+      let modalValues = "";
+      // Get value of text inputs
+      for (let action of data.components) {
+        let inputComponent = action.components[0];
+        modalValues += `${inputComponent.custom_id}: ${inputComponent.value}\n`;
+      }
+
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: {
+          content: `<@${userId}> typed the following (in a modal):\n\n${modalValues}`,
+        },
       });
     }
   }
