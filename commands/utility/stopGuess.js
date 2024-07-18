@@ -41,10 +41,8 @@ module.exports = {
       );
       return;
     }
-    // TODO: Fetch set list info and compare to user guesses
-    // TODO: Display the results of the game
     const currentShow = currentShows.get(interaction.guildId).get("show");
-    const curretShowSetList = await fetchSetList("1644953886"); //await fetchSetList(currentShow.showId);
+    const curretShowSetList = await fetchSetList(currentShow.showId); //await fetchSetList("1644953886");
     if (!curretShowSetList.length > 0) {
       await interaction.editReply(
         `The show on ${currentShow.showdate} at ${currentShow.venue} has not ended yet. You can stop the game after the show has ended.`

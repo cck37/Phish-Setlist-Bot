@@ -1,63 +1,89 @@
-# Getting Started app for Discord
+# Discord Phish Bot
 
-This project contains a basic rock-paper-scissors-style Discord app written in JavaScript, built for the [getting started guide](https://discord.com/developers/docs/getting-started).
+Allows people to guess songs for an upcoming show based on https://phish.net
 
-![Demo of app](https://github.com/discord/discord-example-app/raw/main/assets/getting-started-demo.gif?raw=true)
+## How does it work?
 
-> ✨ A version of this code is also hosted **[on Glitch 🎏](https://glitch.com/~getting-started-discord)** and **[on Replit 🌀](https://replit.com/github/discord/discord-example-app)**
+This bot is built using javascript with heavy use and influence from [discord.js](https://discord.js.org/).
+
+You first register your commands with your server and then you run your app. When Discord sees someone has ran one of your commands, your app is notified and your code is ran.
+
+You can respond to this using a variety of different built in components Discord offers. You can also chain these `interactions` like a command spawning a modal which has a series of inputs and a button to submit the user's response back to your app.
+
+This app:
+
+- Determines when the next show is playing
+- Takes in guesses from users
+- Validates the inputs are real songs
+- Tallies up scores once the guessing has been ended
+
+This project currently has 4 commands:
+
+1. `/nextShow` - Finds the next show playing based on https://phish.net's API
+2. `/startGuess` - Begins the game and allows users to start guessing
+3. `/guess` - Provides users with a from to make their guesses
+4. `/stopGuess` - Ends the current game, tallies scores, and displays the leaderboard
 
 ## Project structure
+
 Below is a basic overview of the project structure:
 
-```
-├── examples    -> short, feature-specific sample apps
-│   ├── app.js  -> finished app.js code
-│   ├── button.js
-│   ├── command.js
-│   ├── modal.js
-│   ├── selectMenu.js
-├── .env.sample -> sample .env file
-├── app.js      -> main entrypoint for app
-├── commands.js -> slash command payloads + helpers
-├── game.js     -> logic specific to RPS
-├── utils.js    -> utility functions and enums
-├── package.json
-├── README.md
-└── .gitignore
+```txt
+│   .gitignore -> tells git what to ignore like config.json and node_modules
+│   api.js -> wrapper for phish.net api
+│   config.json -> config file where secrets are stored
+│   config.sample.json -> template to use when putting in your secrets
+│   deploy-commands.js -> file to deploy new commands to Discord. Reliant on the `commands` folder below
+│   index.js -> entry point for the app
+│   LICENSE -> legal crap i don't care about
+│   package-lock.json -> npm stuff you shouldn't care about
+│   package.json -> config for npm
+│   README.md -> this file
+├───commands -> folder where commands are registered
+│   └───utility -> idk why this is a sub directory
+│           guess.js -> `/guess` command logic
+│           nextShow.js -> `/nextshow` command logic
+│           startGuess.js -> `/startguess` command logic
+│           stopGuess.js -> `/stopguess` command logic
+├───data -> static data
+│       songs.js -> list of songs used for validation
+├───events -> discord events
+│       interactionCreate.js -> can't remember if this is used
+│       ready.js -> can't remember how this is used
+├───modalResponses -> modal renderl logic
+│       guessModal.js -> logic for the guess modal
+└───utils -> utilities to make life easier
+        responseMappers.js -> mapper to deal with responses
 ```
 
 ## Running app locally
 
-Before you start, you'll need to install [NodeJS](https://nodejs.org/en/download/) and [create a Discord app](https://discord.com/developers/applications) with the proper permissions:
-- `applications.commands`
-- `bot` (with Send Messages enabled)
-
-
-Configuring the app is covered in detail in the [getting started guide](https://discord.com/developers/docs/getting-started).
+Before you start, you'll need to install [NodeJS](https://nodejs.org/en/download/).
 
 ### Setup project
 
 First clone the project:
+
 ```
-git clone https://github.com/discord/discord-example-app.git
+git clone https://github.com/cck37/Phish-Setlist-Bot.git
 ```
 
 Then navigate to its directory and install dependencies:
+
 ```
-cd discord-example-app
+cd Phish-Setlist-Bot
 npm install
 ```
+
 ### Get app credentials
 
-Fetch the credentials from your app's settings and add them to a `.env` file (see `.env.sample` for an example). You'll need your app ID (`APP_ID`), bot token (`DISCORD_TOKEN`), and public key (`PUBLIC_KEY`).
-
-Fetching credentials is covered in detail in the [getting started guide](https://discord.com/developers/docs/getting-started).
-
-> 🔑 Environment variables can be added to the `.env` file in Glitch or when developing locally, and in the Secrets tab in Replit (the lock icon on the left).
+Fetch the credentials from your app's settings and add them to a `config.json` file (see `config.sample.json` for an example). You'll need to get the `clientId` and `guildId` for your server and the `token` for your bot. I think... More info can be found [here](https://discordjs.guide/preparations/adding-your-bot-to-servers.html#bot-invite-links).
 
 ### Install slash commands
 
-The commands for the example app are set up in `commands.js`. All of the commands in the `ALL_COMMANDS` array at the bottom of `commands.js` will be installed when you run the `register` command configured in `package.json`:
+The commands for the example app are set up in `deploy-commands.js`. All of the commands are in the `commands/utility` directory. Each command exports `data` object and an `execute` function. This pattern has been copied from the [discord.js guide here](https://discordjs.guide/creating-your-bot/command-handling.html#loading-command-files)
+
+You can register commands by running the `register` script seen in `package.json`
 
 ```
 npm run register
@@ -68,24 +94,24 @@ npm run register
 After your credentials are added, go ahead and run the app:
 
 ```
-node app.js
+npm run start
 ```
 
 > ⚙️ A package [like `nodemon`](https://github.com/remy/nodemon), which watches for local changes and restarts your app, may be helpful while locally developing.
 
-If you aren't following the [getting started guide](https://discord.com/developers/docs/getting-started), you can move the contents of `examples/app.js` (the finished `app.js` file) to the top-level `app.js`.
-
 ### Set up interactivity
 
-The project needs a public endpoint where Discord can send requests. To develop and test locally, you can use something like [`ngrok`](https://ngrok.com/) to tunnel HTTP traffic.
+None of this relevant when I develop locally.. I can't recall why but it "just werks" with discord.js. This all text from Discord's getting started guide.
 
-Install ngrok if you haven't already, then start listening on port `3000`:
+~~The project needs a public endpoint where Discord can send requests. To develop and test locally, you can use something like [`ngrok`](https://ngrok.com/) to tunnel HTTP traffic.~~
+
+~~Install ngrok if you haven't already, then start listening on port `3000`:~~
 
 ```
 ngrok http 3000
 ```
 
-You should see your connection open:
+~~You should see your connection open:~~
 
 ```
 Tunnel Status                 online
@@ -98,14 +124,12 @@ Connections                  ttl     opn     rt1     rt5     p50     p90
                               0       0       0.00    0.00    0.00    0.00
 ```
 
-Copy the forwarding address that starts with `https`, in this case `https://1234-someurl.ngrok.io`, then go to your [app's settings](https://discord.com/developers/applications).
+~~Copy the forwarding address that starts with `https`, in this case `https://1234-someurl.ngrok.io`, then go to your [app's settings](https://discord.com/developers/applications).~~
 
-On the **General Information** tab, there will be an **Interactions Endpoint URL**. Paste your ngrok address there, and append `/interactions` to it (`https://1234-someurl.ngrok.io/interactions` in the example).
+~~On the **General Information** tab, there will be an **Interactions Endpoint URL**. Paste your ngrok address there, and append `/interactions` to it (`https://1234-someurl.ngrok.io/interactions` in the example).~~
 
-Click **Save Changes**, and your app should be ready to run 🚀
+~~Click **Save Changes**, and your app should be ready to run 🚀~~
 
 ## Other resources
-- Read **[the documentation](https://discord.com/developers/docs/intro)** for in-depth information about API features.
-- Browse the `examples/` folder in this project for smaller, feature-specific code examples
-- Join the **[Discord Developers server](https://discord.gg/discord-developers)** to ask questions about the API, attend events hosted by the Discord API team, and interact with other devs.
-- Check out **[community resources](https://discord.com/developers/docs/topics/community-resources#community-resources)** for language-specific tools maintained by community members.
+
+https://discordjs.guide

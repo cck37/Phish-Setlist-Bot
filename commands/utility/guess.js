@@ -61,25 +61,6 @@ module.exports = {
       "Encore Opener, Closer (comma seperated)"
     );
 
-    // Create the text input components
-    // const favoriteColorInput = new TextInputBuilder()
-    //   .setCustomId("favoriteColorInput")
-    //   // The label is the prompt the user sees for this input
-    //   .setLabel("What's your favorite color?")
-    //   // Short means only a single line of text
-    //   .setStyle(TextInputStyle.Short);
-
-    // const hobbiesInput = new TextInputBuilder()
-    //   .setCustomId("hobbiesInput")
-    //   .setLabel("What's some of your favorite hobbies?")
-    //   // Paragraph means multiple lines of text.
-    //   .setStyle(TextInputStyle.Paragraph);
-
-    // const firstActionRow = new ActionRowBuilder().addComponents(
-    //   favoriteColorInput
-    // );
-    // const secondActionRow = new ActionRowBuilder().addComponents(hobbiesInput);
-
     // Add inputs to the modal
     modal.addComponents(set1, set2, wildcard, encore);
 
