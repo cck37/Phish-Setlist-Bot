@@ -1,8 +1,11 @@
 const { songs } = require("../data/songs");
-const { mapInputToResponse } = require("../utils/responseMappers");
+const {
+  mapInputToResponse,
+  normalizeSongName,
+} = require("../utils/responseMappers");
 
 const customFieldsIds = ["s1", "s2", "wc", "e"];
-const userInputFields = ["s1o", "s1c", "s2o", "s2c", "eo", "ec", "wc1", "wc2"];
+const userInputFields = ["s1o", "s1c", "s2o", "s2c", "e", "wc1", "wc2"];
 
 const validRepsonse =
   "Guess has been saved and can be seen below. If you need to make changes, just type `/guess` again.";
@@ -12,6 +15,7 @@ const invalidResponse =
 module.exports = {
   customId: "guessModal",
   async execute(interaction) {
+    let guess = [];
     const { user, fields, client } = interaction;
     let isAllValid = true;
     let userGuesses = {};
@@ -33,34 +37,28 @@ module.exports = {
             newId = `wc${idx + 1}`;
             break;
           case "e":
-            if (idx === 0) newId = "eo";
-            else newId = "ec";
+            // Do nothing
             break;
         }
-        userGuesses[newId] = input.trim();
+        userGuesses[newId] = normalizeSongName(input);
         const isValid = songs
-          .map((s) => s.toLowerCase())
-          .includes(input.trim().toLowerCase());
+          .map((s) => normalizeSongName(s))
+          .includes(normalizeSongName(input));
         if (!isValid) {
           isAllValid = false;
         }
         resultsString += mapInputToResponse(input, newId, isValid) + "\n";
+
+        guess.push({ id: newId, value: normalizeSongName(input), isValid });
       });
     });
 
-    if (isAllValid) {
-      const guess = userInputFields.map((id) => ({
-        id,
-        value: userGuesses[id],
-      }));
-      client.userGuesses.get(interaction.guildId).set(user.username, guess);
-    }
+    client.userGuesses.get(interaction.guildId).set(user.username, guess);
 
     await interaction.reply({
       content: `${
         isAllValid ? validRepsonse : invalidResponse
       }\n${resultsString}`,
-      ephemeral: true,
     });
   },
 };

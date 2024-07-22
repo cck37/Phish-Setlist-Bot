@@ -10,11 +10,12 @@ const {
 } = require("discord.js");
 const { songs } = require("../../data/songs");
 
-const buildSongSelect = (id, placeholder) => {
+const buildSongSelect = (id, placeholder, value = "") => {
   const input = new TextInputBuilder()
     .setCustomId(id)
     .setLabel(placeholder.slice(0, 45)) // 45 max length count
-    .setStyle(TextInputStyle.Short);
+    .setStyle(TextInputStyle.Short)
+    .setValue(value);
   /*
     // One day when i can have more than 25 options in a select menu
     // Or when I can have a proper autocomplete
@@ -28,12 +29,42 @@ const buildSongSelect = (id, placeholder) => {
   return new ActionRowBuilder().addComponents(input);
 };
 
+const joinValidSetGuesses = (accumulator, current) => {
+  if (current.isValid) {
+    const setId = current.id.slice(0, 2);
+    const existingSet = accumulator.find((item) => item.id === setId);
+
+    if (current.isValid) {
+      if (existingSet) {
+        existingSet.value += `, ${current.value}`;
+      } else {
+        accumulator.push({ id: setId, value: current.value });
+      }
+    }
+  }
+  return accumulator;
+};
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("guess")
     .setDescription("Starts the game for the next show."),
   async execute(interaction) {
-    const { currentShows } = interaction.client;
+    const { user, client, guildId } = interaction;
+    const { currentShows } = client;
+    let previousUserGuesses = [];
+
+    if (
+      client.userGuesses.has(interaction.guildId) &&
+      client.userGuesses.get(interaction.guildId).size > 0 &&
+      client.userGuesses.get(interaction.guildId).has(user.username)
+    ) {
+      previousUserGuesses = client.userGuesses
+        .get(interaction.guildId)
+        .get(user.username)
+        .reduce(joinValidSetGuesses, []);
+    }
+
     if (!currentShows.has(interaction.guildId)) {
       await interaction.reply(
         "There is no game running for this server. You can start a game by typing `/startguess`."
@@ -49,16 +80,23 @@ module.exports = {
     // Create the select menu components
     const set1 = buildSongSelect(
       "s1",
-      "First Set Opener, Closer (comma seperated)"
+      "First Set Opener, Closer (comma seperated)",
+      previousUserGuesses.find((g) => g.id === "s1")?.value ?? ""
     );
     const set2 = buildSongSelect(
       "s2",
-      "Second Set Opener, Closer (comma seperated)"
+      "Second Set Opener, Closer (comma seperated)",
+      previousUserGuesses.find((g) => g.id === "s2")?.value ?? ""
     );
-    const wildcard = buildSongSelect("wc", "Wild Card 1, 2 (comma seperated)");
+    const wildcard = buildSongSelect(
+      "wc",
+      "Wild Card 1, 2 (comma seperated)",
+      previousUserGuesses.find((g) => g.id === "wc")?.value ?? ""
+    );
     const encore = buildSongSelect(
       "e",
-      "Encore Opener, Closer (comma seperated)"
+      "Any one song for encore (no comma needed)",
+      previousUserGuesses.find((g) => g.id === "e")?.value
     );
 
     // Add inputs to the modal

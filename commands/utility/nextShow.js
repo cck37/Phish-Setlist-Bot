@@ -27,5 +27,7 @@ module.exports = {
       );
       await interaction.followUp(userGuessResponse);
     }
+    console.log("currentUserGuesses:", currentUserGuesses);
+    console.log("showResponse:", showResponse);
   },
 };

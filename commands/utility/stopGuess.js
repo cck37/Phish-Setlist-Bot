@@ -1,10 +1,16 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { unorderedList } = require("@discordjs/formatters");
 const { fetchSetList } = require("../../api");
+const {
+  normalizeSongName,
+  generateColorByUsername,
+  guessIdToFriendlyString,
+} = require("../../utils/responseMappers");
 
 const guessIdToScore = (guessId) => {
   if (guessId.startsWith("s1") || guessId.startsWith("s2")) {
     return 4;
-  } else if (guessId.startsWith("e")) {
+  } else if (guessId === "e") {
     return 5;
   } else if (guessId.startsWith("wc")) {
     return 3;
@@ -13,20 +19,47 @@ const guessIdToScore = (guessId) => {
   }
 };
 
-const buildResults = (userScores) => {
+/*
+const buildResultEmbed = (userScores) => {
   return userScores
-    .map(
-      (userScore) =>
-        ` - **${userScore.user}**
-            - Score: \`${userScore.score}\`
-          - Songs guessed correctly: \n\t${
-            userScore.correctGuesses.length > 0
-              ? userScore.correctGuesses.map((guess) => `${guess}`).join("\n\t")
-              : "\tNone"
-          }`
+    .map((userScore) =>
+      unorderedList([
+        `**${userScore.user}**`,
+        `\n\tScore: \`${userScore.score}\``,
+        `\n\tSongs guessed correctly: ${
+          userScore.correctGuesses.length > 0
+            ? unorderedList(
+                userScore.correctGuesses.map((guess) => `\n\t${guess}`)
+              )
+            : "\n\tNone"
+        }`,
+      ])
     )
     .join("\n");
 };
+*/
+
+const buildResultEmbed = (userScores) =>
+  new EmbedBuilder()
+    .setColor(generateColorByUsername(userScores.user))
+    .setTitle(userScores.user)
+    // TODO: User PFP here?
+    // .setAuthor({
+    //   name: userScores.user,
+    //   iconURL: "https://i.imgur.com/AfFp7pu.png",
+    //   url: "https://discord.js.org",
+    // })
+    .setDescription(`Score: ${userScores.score}`)
+    .addFields(
+      userScores.correctGuesses.length > 0
+        ? userScores.correctGuesses.map((guess) => ({
+            name: guessIdToFriendlyString(guess.guessId),
+            value: `${guess.songName} +${guess.points}`,
+            inline: true,
+          }))
+        : { name: "None", value: "None" }
+    )
+    .setTimestamp();
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -34,16 +67,28 @@ module.exports = {
     .setDescription("Stops the game for the current show."),
   async execute(interaction) {
     await interaction.deferReply("Thinking...");
+    const { member } = interaction;
     const { currentShows, userGuesses } = interaction.client;
+
+    if (!member.roles.cache.some((role) => role.name === "Phish Bot Manager")) {
+      await interaction.editReply(
+        `You don't have the proper role to run this. You need the role \`Phish Bot Manager\` to run that command.`
+      );
+      return;
+    }
+
     if (!currentShows.has(interaction.guildId)) {
+      console.error("No show found:", currentShows);
       await interaction.editReply(
         "There is no game running for this server. You can start a game by typing `/startguess`."
       );
       return;
     }
     const currentShow = currentShows.get(interaction.guildId).get("show");
-    const curretShowSetList = await fetchSetList(currentShow.showId); //await fetchSetList("1644953886");
+    console.log("Getting results for show:", currentShow);
+    const curretShowSetList = await fetchSetList(currentShow.showid);
     if (!curretShowSetList.length > 0) {
+      console.error("No setlist found:", curretShowSetList);
       await interaction.editReply(
         `The show on ${currentShow.showdate} at ${currentShow.venue} has not ended yet. You can stop the game after the show has ended.`
       );
@@ -60,28 +105,26 @@ module.exports = {
       } else if (songObj.set === "2" && prevSong.set === "1") {
         songsPlayed["s1c"] = prevSong;
         songsPlayed["s2o"] = songObj;
-        // Opening song encore and closing song second set
+        // Opening closing song second set
       } else if (songObj.set === "e" && prevSong.set === "2") {
         songsPlayed["s2c"] = prevSong;
-        songsPlayed["eo"] = songObj;
-      } else if (songObj.set === "e" && prevSong.set === "e") {
-        songsPlayed["ec"] = songObj;
       }
 
       prevSong = songObj;
     }
 
-    // Wildcard songs are all songs that aren't openers or closers for any set
-    const songsNamesPlayed = Object.keys(songsPlayed).map(
-      (key) => songsPlayed[key].song
-    );
-    songsPlayed["wc"] = curretShowSetList.filter(
-      (songObj) => !songsNamesPlayed.includes(songObj.song)
+    // Wildcard songs are all songs played
+    songsPlayed["wc"] = curretShowSetList;
+
+    // Encore is any song played in the encore
+    songsPlayed["e"] = curretShowSetList.filter(
+      (songObj) => songObj.set === "e"
     );
 
     console.log(
+      "Songs played:",
       Object.keys(songsPlayed).map((key) => {
-        if (key === "wc") {
+        if (key === "wc" || key === "e") {
           return songsPlayed[key].map((song) => song.song);
         }
         return key + " " + songsPlayed[key].song;
@@ -96,42 +139,85 @@ module.exports = {
       const userGuessesArray = Array.from(currentUserGuesses.keys());
       const userScores = userGuessesArray.map((user) => {
         const userGuesses = currentUserGuesses.get(user);
-        console.log(user, userGuesses);
-
+        console.log(`Users ${user} guesses:`, userGuesses);
         let score = 0;
         let correctGuesses = [];
         for (const guess of userGuesses) {
           // Partial guesses are allowed so skip empty guesses
-          if (!guess.value) {
+          if (!guess.value || !guess.isValid) {
             continue;
           }
+
           if (guess.id.startsWith("wc")) {
             const songPlayedForSet = songsPlayed["wc"];
             // Wildcard entires are an array... i'm sure that wont be confusing
             const playedSongs = songPlayedForSet.map((song) =>
-              song.song.toLowerCase().trim()
+              normalizeSongName(song.song)
             );
-            if (playedSongs.includes(guess.value.toLowerCase())) {
-              score += guessIdToScore(guess.id);
-              correctGuesses.push(`${guess.id} - ${guess.value} +${score}`);
+            if (playedSongs.includes(guess.value)) {
+              const points = guessIdToScore(guess.id);
+              score += points;
+              correctGuesses.push({
+                guessId: guess.id,
+                songName: guess.value,
+                points: points,
+              });
+            }
+          } else if (guess.id === "e") {
+            const songPlayedForSet = songsPlayed["e"];
+            const playedEncoreSongs = songPlayedForSet.map((song) =>
+              normalizeSongName(song.song)
+            );
+            // Guess played in encore at all
+            if (playedEncoreSongs.includes(guess.value)) {
+              const points = guessIdToScore(guess.id);
+              score += points;
+              correctGuesses.push({
+                guessId: guess.id,
+                songName: guess.value,
+                points: points,
+              });
             }
           } else {
             const songPlayedForSet = songsPlayed[guess.id];
             // Check if songsPlayedForSet is an array or an object
-            if (Array.isArray(songPlayedForSet)) {
-              const playedSongs = songPlayedForSet.map((song) =>
-                song.song.toLowerCase().trim()
-              );
-              if (playedSongs.includes(guess.value.toLowerCase().trim())) {
-                score += guessIdToScore(guess.id);
-                correctGuesses.push(`${guess.id} - ${guess.value} +${score}`);
-              }
-            } else if (
-              songPlayedForSet.song.toLowerCase().trim() ===
-              guess.value.toLowerCase().trim()
+            // if (
+            //   Array.isArray(songPlayedForSet) &&
+            //   songPlayedForSet.length > 0
+            // ) {
+            // const playedSongs = songPlayedForSet.map((song) =>
+            //   normalizeSongName(song.song)
+            // );
+            // if (playedSongs.includes(guess.value)) {
+            //   score += guessIdToScore(guess.id);
+            //   correctGuesses.push(`${guess.id} - ${guess.value} +${score}`);
+            // }
+            // } else if (
+            if (
+              normalizeSongName(songPlayedForSet.song) ===
+              normalizeSongName(guess.value)
             ) {
-              score += guessIdToScore(guess.id);
-              correctGuesses.push(`${guess.id} - ${guess.value} +${score}`);
+              const points = guessIdToScore(guess.id);
+              score += points;
+              correctGuesses.push({
+                guessId: guess.id,
+                songName: guess.value,
+                points: points,
+              });
+            }
+            // Guess played in show at all
+            else if (
+              songsPlayed["wc"]
+                .map((song) => normalizeSongName(song.song))
+                .includes(guess.value)
+            ) {
+              const points = 1;
+              score += points;
+              correctGuesses.push({
+                guessId: "any",
+                songName: guess.value,
+                points: points,
+              });
             }
           }
         }
@@ -144,10 +230,29 @@ module.exports = {
       await interaction.editReply(
         `The game for the show on ${currentShow.showdate} at ${
           currentShow.venue
-        } has been stopped. Here are the results:\n${buildResults(
-          userScores
-        )}\n\nYou can start a new game by typing \`/startguess\`.`
+        } has been stopped. Results for each user will be sent seperately. \nSongs played:
+        ${unorderedList(
+          Object.keys(songsPlayed).map((key) => {
+            if (key === "wc" || key === "e") {
+              return (
+                guessIdToFriendlyString(key) +
+                ": \n" +
+                unorderedList(songsPlayed[key].map((song) => song.song))
+              );
+            }
+            return guessIdToFriendlyString(key) + ": " + songsPlayed[key].song;
+          })
+        )}
+        \nYou can start a new game by typing \`/startguess\`.`
       );
+      userScores
+        .sort((a, b) => a.score - b.score)
+        .forEach(
+          async (userScore) =>
+            await interaction.followUp({
+              embeds: [buildResultEmbed(userScore)],
+            })
+        );
       currentShows.delete(interaction.guildId);
       return;
     }
