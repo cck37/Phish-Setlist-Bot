@@ -5,12 +5,16 @@ const {
 } = require("../utils/responseMappers");
 
 const customFieldsIds = ["s1", "s2", "wc", "e"];
-const userInputFields = ["s1o", "s1c", "s2o", "s2c", "e", "wc1", "wc2"];
 
 const validRepsonse =
-  "Guess has been saved and can be seen below. If you need to make changes, just type `/guess` again.";
+  "has been saved and can be seen below. If you need to make changes, just type `/guess` again.";
 const invalidResponse =
-  "Your guess hasn't been saved. Looks like you have at least one invalid guess.\nCheck the list of songs and remember, it must match what's on this sheet:\nhttps://docs.google.com/spreadsheets/d/1X_QoZz0icaalqZSAF80uPcrc5OcXuOsL9YqUh7IOdeE/edit?usp=sharing";
+  "was partially saved. Anything with a '✔' is saved but anything with a '❌' was not. \nCheck the list of songs and remember, it must match the exact spelling of what's on this sheet:\nhttps://docs.google.com/spreadsheets/d/1X_QoZz0icaalqZSAF80uPcrc5OcXuOsL9YqUh7IOdeE/edit?usp=sharing";
+
+const getResponse = (isValid, { venue, showdate, city, state }) =>
+  `Guess for ${showdate} ${venue}, ${city}, ${state} ${
+    isValid ? validRepsonse : invalidResponse
+  }`;
 
 module.exports = {
   customId: "guessModal",
@@ -55,10 +59,11 @@ module.exports = {
 
     client.userGuesses.get(interaction.guildId).set(user.username, guess);
 
+    const { currentShows } = client;
+    const currentShow = currentShows.get(interaction.guildId).get("show");
+
     await interaction.reply({
-      content: `${
-        isAllValid ? validRepsonse : invalidResponse
-      }\n${resultsString}`,
+      content: `${getResponse(isAllValid, currentShow)}\n${resultsString}`,
     });
   },
 };

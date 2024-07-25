@@ -39,16 +39,11 @@ const buildResultEmbed = (userScores) => {
 };
 */
 
-const buildResultEmbed = (userScores) =>
+const buildResultEmbed = (userScores, isWinner, defaultAvatarURL) =>
   new EmbedBuilder()
     .setColor(generateColorByUsername(userScores.user))
-    .setTitle(userScores.user)
-    // TODO: User PFP here?
-    // .setAuthor({
-    //   name: userScores.user,
-    //   iconURL: "https://i.imgur.com/AfFp7pu.png",
-    //   url: "https://discord.js.org",
-    // })
+    .setTitle(`${userScores.user} ${isWinner ? "🏆" : ""}`)
+    .setThumbnail(defaultAvatarURL)
     .setDescription(`Score: ${userScores.score}`)
     .addFields(
       userScores.correctGuesses.length > 0
@@ -67,8 +62,8 @@ module.exports = {
     .setDescription("Stops the game for the current show."),
   async execute(interaction) {
     await interaction.deferReply("Thinking...");
-    const { member } = interaction;
-    const { currentShows, userGuesses } = interaction.client;
+    const { member, guild } = interaction;
+    const { currentShows, userGuesses, users } = interaction.client;
 
     if (!member.roles.cache.some((role) => role.name === "Phish Bot Manager")) {
       await interaction.editReply(
@@ -177,22 +172,22 @@ module.exports = {
                 songName: guess.value,
                 points: points,
               });
+            } // Guess played in show at all
+            else if (
+              songsPlayed["wc"]
+                .map((song) => normalizeSongName(song.song))
+                .includes(guess.value)
+            ) {
+              const points = 1;
+              score += points;
+              correctGuesses.push({
+                guessId: "any",
+                songName: guess.value,
+                points: points,
+              });
             }
           } else {
             const songPlayedForSet = songsPlayed[guess.id];
-            // Check if songsPlayedForSet is an array or an object
-            // if (
-            //   Array.isArray(songPlayedForSet) &&
-            //   songPlayedForSet.length > 0
-            // ) {
-            // const playedSongs = songPlayedForSet.map((song) =>
-            //   normalizeSongName(song.song)
-            // );
-            // if (playedSongs.includes(guess.value)) {
-            //   score += guessIdToScore(guess.id);
-            //   correctGuesses.push(`${guess.id} - ${guess.value} +${score}`);
-            // }
-            // } else if (
             if (
               normalizeSongName(songPlayedForSet.song) ===
               normalizeSongName(guess.value)
@@ -245,14 +240,21 @@ module.exports = {
         )}
         \nYou can start a new game by typing \`/startguess\`.`
       );
+
       userScores
         .sort((a, b) => a.score - b.score)
-        .forEach(
-          async (userScore) =>
-            await interaction.followUp({
-              embeds: [buildResultEmbed(userScore)],
-            })
-        );
+        .forEach(async (userScore, idx) => {
+          const member = await guild.members.search({ query: userScore.user });
+          await interaction.followUp({
+            embeds: [
+              buildResultEmbed(
+                userScore,
+                idx === userScores.length - 1,
+                member.first().displayAvatarURL().toString()
+              ),
+            ],
+          });
+        });
       currentShows.delete(interaction.guildId);
       return;
     }

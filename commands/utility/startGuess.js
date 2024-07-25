@@ -2,27 +2,26 @@ const { SlashCommandBuilder, Collection } = require("discord.js");
 const { fetchNextShow } = require("../../api");
 
 const testShow = {
-  showid: "1709061711",
+  showid: "1709061734",
   showyear: "2024",
   showmonth: "7",
-  showday: "21",
-  showdate: "2024-07-21",
+  showday: "23",
+  showdate: "2024-07-23",
   permalink:
-    "https://phish.net/setlists/phish-july-21-2024-xfinity-center-mansfield-ma-usa.html",
+    "https://phish.net/setlists/phish-july-23-2024-mohegan-sun-arena-uncasville-ct-usa.html",
   exclude_from_stats: "0",
-  venueid: "1306",
-  setlist_notes:
-    "This show featured two bustouts: The Connection (last played December 7, 2019, or 151 shows) and Thread (last played September 1, 2021, or 123 shows).\r\nDuring the soundcheck, Trey teased Divided Sky in Plasma. ",
-  venue: "Xfinity Center",
-  city: "Mansfield",
-  state: "MA",
+  venueid: "1467",
+  setlist_notes: "",
+  venue: "Mohegan Sun Arena",
+  city: "Uncasville",
+  state: "CT",
   country: "USA",
   artistid: "1",
   artist_name: "Phish",
   tourid: "172",
   tour_name: "2024 Summer Tour",
-  created_at: "2024-02-27 14:21:51",
-  updated_at: "2024-07-22 00:56:39",
+  created_at: "2024-02-27 14:22:14",
+  updated_at: "2024-07-02 15:06:07",
 };
 
 module.exports = {
@@ -41,7 +40,7 @@ module.exports = {
       return;
     }
 
-    if (!currentShows.has(interaction.guildId)) {
+    if (!currentShows.has(guildId)) {
       const nextShowToBePlayed = await fetchNextShow();
       currentShows.set(guildId, new Collection());
       currentShows.get(guildId).set("show", nextShowToBePlayed);

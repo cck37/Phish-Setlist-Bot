@@ -23,7 +23,7 @@ const normalizeSongName = (songName) =>
   songName
     .trim()
     .toLowerCase()
-    .replace(/[.,'`‘]/g, "");
+    .replace(/[.,'`‘’]/g, "");
 
 const hashCode = (str) => {
   let hash = 0;

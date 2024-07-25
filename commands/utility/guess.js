@@ -55,23 +55,23 @@ module.exports = {
     let previousUserGuesses = [];
 
     if (
-      client.userGuesses.has(interaction.guildId) &&
-      client.userGuesses.get(interaction.guildId).size > 0 &&
-      client.userGuesses.get(interaction.guildId).has(user.username)
+      client.userGuesses.has(guildId) &&
+      client.userGuesses.get(guildId).size > 0 &&
+      client.userGuesses.get(guildId).has(user.username)
     ) {
       previousUserGuesses = client.userGuesses
-        .get(interaction.guildId)
+        .get(guildId)
         .get(user.username)
         .reduce(joinValidSetGuesses, []);
     }
 
-    if (!currentShows.has(interaction.guildId)) {
+    if (!currentShows.has(guildId)) {
       await interaction.reply(
         "There is no game running for this server. You can start a game by typing `/startguess`."
       );
       return;
     }
-    const currentShow = currentShows.get(interaction.guildId).get("show");
+    const currentShow = currentShows.get(guildId).get("show");
     // Create the modal
     const modal = new ModalBuilder()
       .setCustomId("guessModal")
