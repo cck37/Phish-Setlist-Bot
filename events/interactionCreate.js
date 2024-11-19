@@ -1,6 +1,6 @@
 const { Events, Collection } = require("discord.js");
 
-function applyCooldown(interaction, command) {
+async function applyCooldown(interaction, command) {
   const { cooldowns } = interaction.client;
 
   if (!cooldowns.has(interaction.commandName)) {
@@ -17,10 +17,25 @@ function applyCooldown(interaction, command) {
 
     if (now < expirationTime) {
       const expiredTimestamp = Math.round(expirationTime / 1000);
-      return interaction.reply({
-        content: `Please wait, you are on a cooldown for \`${interaction.commandName}\`. You can use it again <t:${expiredTimestamp}:R>.`,
-        ephemeral: true,
-      });
+
+      // FIX: Apparently neither of these count as valid interactions???
+      /**
+       * Uncaught _DiscordAPIError DiscordAPIError[10062]: Unknown interaction
+            at handleErrors (c:\Users\Botnet2\Desktop\Skript Kiddy\Phish-Setlist-Bot\node_modules\@discordjs\rest\src\lib\handlers\Shared.ts:148:10)
+            at processTicksAndRejections (internal/process/task_queues:95:5)
+       */
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({
+          content: `Please wait, you are on a cooldown for \`${interaction.commandName}\`. You can use it again <t:${expiredTimestamp}:R>.`,
+          ephemeral: true,
+        });
+      } else {
+        await interaction.reply({
+          content: `Please wait, you are on a cooldown for \`${interaction.commandName}\`. You can use it again <t:${expiredTimestamp}:R>.`,
+          ephemeral: true,
+        });
+      }
+      return;
     }
   }
   timestamps.set(interaction.user.id, now);
@@ -49,7 +64,8 @@ module.exports = {
       }
     } else if (interaction.isChatInputCommand()) {
       const command = interaction.client.commands.get(interaction.commandName);
-      applyCooldown(interaction, command);
+      // FIX: _DiscordAPIError DiscordAPIError[10062]: Unknown interaction
+      //applyCooldown(interaction, command);
 
       if (!command) {
         console.error(

@@ -134,7 +134,7 @@ module.exports = {
       const userGuessesArray = Array.from(currentUserGuesses.keys());
       const userScores = userGuessesArray.map((user) => {
         const userGuesses = currentUserGuesses.get(user);
-        console.log(`Users ${user} guesses:`, userGuesses);
+        console.log(`User ${user}'s guesses:`, userGuesses);
         let score = 0;
         let correctGuesses = [];
         for (const guess of userGuesses) {
@@ -189,7 +189,7 @@ module.exports = {
           } else {
             const songPlayedForSet = songsPlayed[guess.id];
             if (
-              normalizeSongName(songPlayedForSet.song) ===
+              normalizeSongName(songPlayedForSet?.song ?? "") ===
               normalizeSongName(guess.value)
             ) {
               const points = guessIdToScore(guess.id);

@@ -75,7 +75,7 @@ module.exports = {
     // Create the modal
     const modal = new ModalBuilder()
       .setCustomId("guessModal")
-      .setTitle(`Guess for show ${currentShow.showdate}~${currentShow.venue}!`);
+      .setTitle(`Guess for show on ${currentShow.showdate}!`);
 
     // Create the select menu components
     const set1 = buildSongSelect(

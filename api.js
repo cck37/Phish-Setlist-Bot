@@ -12,7 +12,6 @@ async function fetchShows() {
     direction: "desc",
     limit: 100,
   });
-  console.log();
   const response = await fetch(
     `${baseUrl}/shows/artist/phish.json?${urlParams}`
   );
