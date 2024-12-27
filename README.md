@@ -77,7 +77,13 @@ npm install
 
 ### Get app credentials
 
-Fetch the credentials from your app's settings and add them to a `config.json` file (see `config.sample.json` for an example). You'll need to get the `clientId` and `guildId` for your server and the `token` for your bot. I think... More info can be found [here](https://discordjs.guide/preparations/adding-your-bot-to-servers.html#bot-invite-links).
+Fetch the credentials from your app's settings and add them to a `config.json` file (see `config.sample.json` for an example).
+You'll need to get the following:
+
+1. `clientId` - See [here](https://discordjs.guide/preparations/adding-your-bot-to-servers.html#bot-invite-links)
+2. `guildId` - See [here](https://discordjs.guide/preparations/adding-your-bot-to-servers.html#bot-invite-links)
+3. `token` - See [here](https://discordjs.guide/preparations/adding-your-bot-to-servers.html#bot-invite-links)
+4. `phishNetToken` - Token generated for phish.net found [here](https://api.phish.net/keys/)
 
 ### Install slash commands
 
